@@ -1,34 +1,30 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Clasificador de Imágenes</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Clasificador con Lambda</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
 </head>
 <body class="bg-light">
   <div class="container mt-5">
     <div class="card shadow">
       <div class="card-header bg-primary text-white">
-        <h4 class="mb-0">Clasificador de Imágenes con AWS Lambda</h4>
+        <h4>Clasificador de Imágenes con AWS Lambda</h4>
       </div>
       <div class="card-body">
-        <div class="mb-3">
-          <label for="imagen" class="form-label">Selecciona una imagen:</label>
-          <input class="form-control" type="file" id="imagen" accept="image/*">
-        </div>
+        <input type="file" class="form-control mb-3" id="imagen" accept="image/*" />
         <button class="btn btn-success" onclick="clasificarImagen()">Subir y Clasificar</button>
 
         <div id="resultado" class="mt-4" style="display: none;">
           <h5>Resultado:</h5>
           <p><strong>Tipo Detectado:</strong> <span id="tipo"></span></p>
           <p><strong>Descripción:</strong> <span id="descripcion"></span></p>
-          <p><strong>Respuesta del Backend:</strong></p>
-          <pre id="respuesta" class="bg-light p-2 border rounded"></pre>
+          <pre id="respuesta" class="bg-light border p-2 rounded"></pre>
         </div>
 
-        <hr>
-        <div id="listado" class="mt-4">
+        <hr/>
+        <div class="mt-4">
           <h5>Listado de Imágenes Guardadas:</h5>
           <ul id="imagenesList" class="list-group"></ul>
         </div>
@@ -38,14 +34,13 @@
 
   <script>
     async function clasificarImagen() {
-      const input = document.getElementById('imagen');
-      const file = input.files[0];
-      if (!file) return alert("Por favor selecciona una imagen");
+      const fileInput = document.getElementById("imagen");
+      const file = fileInput.files[0];
+      if (!file) return alert("Selecciona una imagen.");
 
       const reader = new FileReader();
       reader.onloadend = async () => {
         const base64 = reader.result.split(",")[1];
-
         const payload = {
           fileName: file.name,
           image: base64
@@ -59,59 +54,51 @@
           });
 
           const data = await res.json();
-          document.getElementById("resultado").style.display = "block";
-          document.getElementById("tipo").innerText = data.classification?.typeDetected || 'Desconocido';
-          document.getElementById("descripcion").innerText = data.classification?.description || 'No se pudo clasificar';
-          document.getElementById("respuesta").innerText = JSON.stringify(data.backendResponse || data, null, 2);
 
-          // Recargar listado de imágenes
+          document.getElementById("resultado").style.display = "block";
+          document.getElementById("tipo").textContent = data.classification?.typeDetected || "Desconocido";
+          document.getElementById("descripcion").textContent = data.classification?.description || "Sin descripción";
+          document.getElementById("respuesta").textContent = JSON.stringify(data.backendResponse || data, null, 2);
+
           obtenerImagenes();
         } catch (error) {
-          alert("Error al clasificar la imagen: " + error);
+          alert("Error al clasificar: " + error.message);
         }
       };
       reader.readAsDataURL(file);
     }
+
     async function obtenerImagenes() {
-  try {
-    const res = await fetch("http://107.23.71.140:8080/imagenes");
-    const data = await res.json();
+      try {
+        const res = await fetch("http://107.23.71.140:8080/imagenes");
+        const data = await res.json();
+        const lista = document.getElementById("imagenesList");
+        lista.innerHTML = "";
 
-    console.log("✅ Datos recibidos:", data); // 👉 AÑADIDO PARA VERIFICAR
+        data.forEach(img => {
+          const tipo = img.tipo_detectado || "Sin clasificar";
+          const descripcion = img.descripcion?.trim() || "Sin descripción";
+          const archivo = img.archivo;
+          const imagenURL = archivo ? `http://107.23.71.140:8080/${archivo}` : "";
 
-    const lista = document.getElementById("imagenesList");
-    lista.innerHTML = "";
+          const item = document.createElement("li");
+          item.className = "list-group-item";
 
-    data.forEach(img => {
-      const tipo = img.tipo_detectado || 'Sin clasificar';
-      const descripcion = img.descripcion?.trim() || 'Sin descripción';
-      const archivo = img.archivo || '';
-      const urlImagen = archivo ? `http://107.23.71.140:8080/${encodeURI(archivo)}` : '';
-
-      const item = document.createElement("li");
-      item.className = "list-group-item";
-
-      let contenido = `<div class="d-flex align-items-center">`;
-      if (archivo && archivo.endsWith('.jpg')) {
-        contenido += `<img src="${urlImagen}" alt="imagen" width="100" class="me-3 border rounded" onerror="this.style.display='none'">`;
+          item.innerHTML = `
+            <div class="d-flex align-items-center">
+              <img src="${imagenURL}" alt="imagen" width="100" class="me-3 border rounded" onerror="this.style.display='none'"/>
+              <div>
+                <p class="mb-1"><strong>${img.nombre}</strong></p>
+                <p class="mb-0">${tipo} - ${descripcion}</p>
+              </div>
+            </div>`;
+          lista.appendChild(item);
+        });
+      } catch (error) {
+        console.error("❌ No se pudo cargar el listado:", error);
       }
-      contenido += `<div>
-          <p class="mb-1"><strong>${img.nombre}</strong></p>
-          <p class="mb-0">${tipo} - ${descripcion}</p>
-        </div>
-      </div>`;
+    }
 
-      item.innerHTML = contenido;
-      lista.appendChild(item);
-    });
-
-  } catch (error) {
-    console.error("❌ No se pudo cargar el listado de imágenes", error);
-  }
-}
-
-
-    // Cargar listado al iniciar
     obtenerImagenes();
   </script>
 </body>
