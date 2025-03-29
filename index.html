@@ -86,7 +86,7 @@
       const tipo = img.tipo_detectado || 'Sin clasificar';
       const descripcion = img.descripcion?.trim() || 'Sin descripción';
       const archivo = img.archivo || '';
-      const urlImagen = archivo ? `http://107.23.71.140:8080/${archivo}` : '';
+      const urlImagen = archivo ? `http://107.23.71.140:8080/${encodeURI(archivo)}` : '';
 
       const item = document.createElement("li");
       item.className = "list-group-item";
